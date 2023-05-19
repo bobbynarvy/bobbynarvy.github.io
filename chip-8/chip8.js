@@ -26,7 +26,7 @@ window.Chip8 = (() => {
 	const display = elem("chip8-display");
 	const ctx = display.getContext("2d");
 	const assembly = [];
-	const clearDisplay = () => ctx.clearRect(0, 0, display.width, display.height);
+	let pixels = [];
 	const keyByteMap = {
 		1: 0x1,
 		2: 0x2,
@@ -56,7 +56,8 @@ window.Chip8 = (() => {
 	["keydown", "keyup"].forEach((keyEvent) => {
 		document.body.addEventListener(keyEvent, (event) => {
 			const byte = keyByteMap[event.key];
-			if (byte || byte === 0) { // explicit test for 0; it will be ignored otherwise 
+			// explicit test for 0; it will be ignored otherwise
+			if (byte || byte === 0) {
 				setKey(byte, keyEvent === "keydown");
 			}
 		});
@@ -72,27 +73,31 @@ window.Chip8 = (() => {
 		}
 	};
 
-	return {
-		clearDisplay,
-		// The CHIP-8 display is a 64x32-pixel display. In this implementation,
-		// each pixel is scaled by 10 pixels, meaning that the entire display is
-		// 640x320 pixels large.
-		draw: (pixels) => {
-			clearDisplay();
-			pixels.forEach((row, y) => {
-				row.forEach((column, x) => {
-					if (pixels[y][x] === 1) {
-						ctx.beginPath();
-						ctx.rect(x * 10, y * 10, 10, 10);
-						ctx.fillStyle = "black";
-						ctx.fill();
-						ctx.lineWidth = 1;
-						ctx.strokeStyle = "white";
-						ctx.stroke();
-					}
-				});
+	// The CHIP-8 display is a 64x32-pixel display. In this implementation,
+	// each pixel is scaled by 10 pixels, meaning that the entire display is
+	// 640x320 pixels large.
+	const drawPixels = () =>
+		window.requestAnimationFrame(() => {
+			ctx.clearRect(0, 0, display.width, display.height);
+			pixels.forEach(([x, y]) => {
+				ctx.beginPath();
+				ctx.rect(x * 10, y * 10, 10, 10);
+				ctx.fillStyle = "black";
+				ctx.fill();
+				ctx.lineWidth = 1;
+				ctx.strokeStyle = "white";
+				ctx.stroke();
 			});
+			drawPixels();
+		});
+	drawPixels();
+
+	return {
+		clearDisplay: () => {
+			pixels = [];
+			ctx.clearRect(0, 0, display.width, display.height);
 		},
+		draw: (vmPixels) => (pixels = vmPixels),
 		waitForKeyPress: () => {
 			const keyWaitingDiv = elem("debug-key-waiting");
 			keyWaitingDiv.style.display = "block";
